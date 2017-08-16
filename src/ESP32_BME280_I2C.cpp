@@ -99,7 +99,7 @@ double ESP32_BME280_I2C::Read_Temperature(){
   Wire.beginTransmission(_bme280_addres);
   Wire.write(0xFA); //0xFA temperature msb read, bit 7 high
   Wire.endTransmission();
-  Wire.requestFrom(_bme280_addres, 3);
+  Wire.requestFrom((uint8_t)_bme280_addres, (uint8_t)3);
 
   for(i=0; i<3; i++){
 		data[i] = Wire.read();
@@ -118,7 +118,7 @@ double ESP32_BME280_I2C::Read_Pressure(){
   Wire.beginTransmission(_bme280_addres);
   Wire.write(0xF7); //0xF7 puressure msb read, bit 7 high
   Wire.endTransmission();
-  Wire.requestFrom(_bme280_addres, 3);
+  Wire.requestFrom((uint8_t)_bme280_addres, (uint8_t)3);
 
   for(i=0; i<3; i++){
     data[i] = Wire.read();
@@ -136,7 +136,7 @@ double ESP32_BME280_I2C::Read_Humidity(){
   Wire.beginTransmission(_bme280_addres);
   Wire.write(0xFD); //0xFD Humidity msb read, bit 7 high
 	Wire.endTransmission();
-  Wire.requestFrom(_bme280_addres, 2);
+  Wire.requestFrom((uint8_t)_bme280_addres, (uint8_t)2);
 
   data[0] = Wire.read();
   data[1] = Wire.read();
@@ -214,7 +214,7 @@ uint16_t ESP32_BME280_I2C::read16bit(uint8_t reg) {
   Wire.beginTransmission(_bme280_addres);
 	Wire.write(reg);
   Wire.endTransmission();
-  Wire.requestFrom(_bme280_addres, 2);
+  Wire.requestFrom((uint8_t)_bme280_addres, (uint8_t)2);
   
 	d1 = Wire.read();
   d2 = Wire.read();
@@ -229,7 +229,7 @@ uint8_t ESP32_BME280_I2C::read8bit(uint8_t reg) {
   Wire.beginTransmission(_bme280_addres);
   Wire.write(reg); // read, bit 7 high
 	Wire.endTransmission();
-  Wire.requestFrom(_bme280_addres, 1);
+  Wire.requestFrom((uint8_t)_bme280_addres, (uint8_t)1);
   
   data = Wire.read();
 
