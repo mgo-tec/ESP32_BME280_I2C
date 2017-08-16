@@ -1,0 +1,13 @@
+ESP32_BME280_I2C	KEYWORD1
+ESP32_BME280_I2C_Init	KEYWORD2
+WriteRegister	KEYWORD2
+ReadCalibration	KEYWORD2
+compensate_T	KEYWORD2
+compensate_P	KEYWORD2
+compensate_H	KEYWORD2
+read16bit	KEYWORD2
+read8bit	KEYWORD2
+Read_Temperature	KEYWORD2
+Read_Pressure	KEYWORD2
+Read_Humidity	KEYWORD2
+ReadAltitude	KEYWORD2
