@@ -1,6 +1,6 @@
 #include "ESP32_BME280_I2C.h"
 
-ESP32_BME280_I2C bme280i2c(0x76, 21, 25, 400000);
+ESP32_BME280_I2C bme280i2c(0x76, 21, 25, 400000); //address, SCK, SDA, frequency
 
 void setup(){
   Serial.begin(115200);
