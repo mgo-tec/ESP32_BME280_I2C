@@ -1,6 +1,6 @@
 /*
   ESP32_BME280_I2C.cpp - for Arduino core for ESP32
-  Beta version 1.0
+  Beta version 1.1
   
 License MIT [Modified person is Mgo-tec.]
 
@@ -38,14 +38,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ESP32_BME280_I2C.h"
 
-ESP32_BME280_I2C::ESP32_BME280_I2C(uint8_t bme280_address, uint8_t sda, uint8_t scl, uint32_t freq)
+ESP32_BME280_I2C::ESP32_BME280_I2C(uint8_t bme280_address, uint8_t scl, uint8_t sda, uint32_t freq)
   : _bme280_addres(bme280_address), _scl(scl), _sda(sda), _freq(freq)
 {}
 
 //****************ESP32_BME280_I2C初期化*************************************************
 void ESP32_BME280_I2C::ESP32_BME280_I2C_Init(uint8_t Stanby_t, uint8_t filter, uint8_t overS_T, uint8_t overS_P, uint8_t overS_H, uint8_t mode){
 
-	Wire.begin(_scl, _sda, _freq);
+	Wire.begin(_sda, _scl, _freq);
 
   uint8_t spi3or4 = 0; //SPI 3wire or 4wire, 0=4wire, 1=3wire
 
@@ -53,8 +53,8 @@ void ESP32_BME280_I2C::ESP32_BME280_I2C_Init(uint8_t Stanby_t, uint8_t filter, u
   uint8_t config    = (Stanby_t << 5) | (filter << 2) | spi3or4;
   uint8_t ctrl_hum  = overS_H;
 
-  //WriteRegister(0xE0, 0xB6); //reset
-  //delay(2000);
+  WriteRegister(0xE0, 0xB6); //reset
+  delay(2000);
   WriteRegister(0xF2, ctrl_hum);
   WriteRegister(0xF4, ctrl_meas);
   WriteRegister(0xF5, config);
