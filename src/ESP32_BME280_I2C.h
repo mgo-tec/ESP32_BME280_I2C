@@ -1,6 +1,6 @@
 /*
   ESP32_BME280_I2C.h - for Arduino core for ESP32
-  Beta version 1.0
+  Beta version 1.2
   
 License MIT [Modified person is Mgo-tec.]
 
@@ -45,7 +45,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 class ESP32_BME280_I2C
 {
 public:
-  ESP32_BME280_I2C(uint8_t bme280_address, uint8_t sda, uint8_t scl, uint32_t freq);
+  ESP32_BME280_I2C(uint8_t bme280_address, uint8_t scl, uint8_t sda, uint32_t freq);
 
   void ESP32_BME280_I2C_Init(uint8_t Stanby_t, uint8_t filter, uint8_t overS_T, uint8_t overS_P, uint8_t overS_H, uint8_t mode);
   void WriteRegister(uint8_t reg_address, uint8_t data);
@@ -53,11 +53,19 @@ public:
   double Read_Temperature();
   double Read_Pressure();
   double Read_Humidity();
+
+  void Read_All(double *temp, double *press, double *hum);
   double ReadAltitude(double SeaLevel_Pres, double pressure);
 
   int32_t compensate_T(int32_t adc_T);
+  double compensate_T_double(int32_t adc_T);
+
   uint32_t compensate_P(int32_t adc_P);
+  double compensate_P_double(int32_t adc_P);
+
   uint32_t compensate_H(int32_t adc_H);
+  double compensate_H_double(int32_t adc_H);
+
   uint16_t read16bit(uint8_t reg);
   uint8_t read8bit(uint8_t reg);
 

@@ -1,6 +1,6 @@
 /*
   ESP32_BME280_I2C.cpp - for Arduino core for ESP32
-  Beta version 1.1
+  Beta version 1.2
   
 License MIT [Modified person is Mgo-tec.]
 
@@ -113,7 +113,7 @@ double ESP32_BME280_I2C::Read_Pressure(){
   uint32_t data[3];
   uint8_t i;
 
-  Read_Temperature(); //_t_fineに値を入れるために必ず気温を読み込む
+  ESP32_BME280_I2C::Read_Temperature(); //_t_fineに値を入れるために必ず気温を読み込む
 
   Wire.beginTransmission(_bme280_addres);
   Wire.write(0xF7); //0xF7 puressure msb read, bit 7 high
@@ -131,7 +131,7 @@ double ESP32_BME280_I2C::Read_Pressure(){
 double ESP32_BME280_I2C::Read_Humidity(){
   uint32_t data[2];
 
-  Read_Temperature(); //_t_fineに値を入れるために必ず気温を読み込む
+  ESP32_BME280_I2C::Read_Temperature(); //_t_fineに値を入れるために必ず気温を読み込む
 
   Wire.beginTransmission(_bme280_addres);
   Wire.write(0xFD); //0xFD Humidity msb read, bit 7 high
@@ -144,6 +144,29 @@ double ESP32_BME280_I2C::Read_Humidity(){
   uint32_t adc_H = (data[0] << 8) | data[1];  //0xFD, msb+lsb=19bit(16:0)
   return compensate_H((int32_t)adc_H) / 1024.0;
 }
+//***************Read Temperature Pressure Humidity *******************
+void ESP32_BME280_I2C::Read_All(double *temp, double *press, double *hum){
+  uint32_t data[8];
+  uint8_t i;
+
+  Wire.beginTransmission(_bme280_addres);
+  Wire.write(0xF7); //0xFA temperature msb read, bit 7 high
+  Wire.endTransmission();
+  Wire.requestFrom((uint8_t)_bme280_addres, (uint8_t)8);
+
+  for(i=0; i<8; i++){
+		data[i] = Wire.read();
+  }
+
+  uint32_t adc_P = (data[0] << 12) | (data[1] << 4) | (data[2] >> 4); //0xF7, msb+lsb+xlsb=19bit
+  uint32_t adc_T = (data[3] << 12) | (data[4] << 4) | (data[5] >> 4); //0xFA, msb+lsb+xlsb=19bit
+  uint32_t adc_H = (data[6] << 8) | data[7];  //0xFD, msb+lsb=19bit(16:0)
+
+  *temp = ESP32_BME280_I2C::compensate_T_double((int32_t)adc_T);
+  *press = ESP32_BME280_I2C::compensate_P_double((int32_t)adc_P);
+  *hum = ESP32_BME280_I2C::compensate_H_double((int32_t)adc_H);
+
+}
 //***************温度キャリブレーション関数****************************
 int32_t ESP32_BME280_I2C::compensate_T(int32_t adc_T) {
   int32_t var1, var2, T;
@@ -154,6 +177,16 @@ int32_t ESP32_BME280_I2C::compensate_T(int32_t adc_T) {
   _t_fine = var1 + var2;
   T = (_t_fine * 5 + 128) >> 8;
 
+  return T;
+}
+//***************************************************************
+double ESP32_BME280_I2C::compensate_T_double(int32_t adc_T){
+  double var1, var2, T;
+  var1 = (((double)adc_T)/16384.0 - ((double)_dig_T1)/1024.0) * ((double)_dig_T2);
+  var2 = ((((double)adc_T)/131072.0 - ((double)_dig_T1)/8192.0) *
+         (((double)adc_T)/131072.0 - ((double)_dig_T1)/8192.0)) * ((double)_dig_T3);
+  _t_fine = (int32_t)(var1 + var2);
+  T = (var1 + var2) / 5120.0;
   return T;
 }
 //***************気圧キャリブレーション関数****************************
@@ -184,7 +217,41 @@ uint32_t ESP32_BME280_I2C::compensate_P(int32_t adc_P) {
   var2 = (((int32_t)(P>>2)) * ((int32_t)_dig_P8))>>13;
   P = (uint32_t)((int32_t)P + ((var1 + var2 + _dig_P7) >> 4));
 
-  return P;
+  return P;  
+}
+//************************************************************
+double ESP32_BME280_I2C::compensate_P_double(int32_t adc_P){
+  double var1, var2, p;
+  double pressure_min = 30000.0;
+	double pressure_max = 110000.0;
+
+  var1 = ((double)_t_fine/2.0) - 64000.0;
+  var2 = var1 * var1 * ((double)_dig_P6) / 32768.0;
+  var2 = var2 + var1 * ((double)_dig_P5) * 2.0;
+  var2 = (var2 / 4.0) + (((double)_dig_P4) * 65536.0);
+  var1 = (((double)_dig_P3) * var1 * var1 / 524288.0 + ((double)_dig_P2) * var1) / 524288.0;
+  var1 = (1.0 + var1 / 32768.0) * ((double)_dig_P1);
+
+  if(var1 == 0.0){
+    return 0;
+  }
+
+  if(var1){
+    p = 1048576.0 - (double)adc_P;
+    p = (p - (var2 / 4096.0)) * 6250.0 / var1;
+    var1 = ((double)_dig_P9) * p * p / 2147483648.0;
+    var2 = p * ((double)_dig_P8) / 32768.0;
+    p = p + (var1 + var2 + ((double)_dig_P7)) / 16.0;
+    
+    if (p < pressure_min)
+			p = pressure_min;
+		else if (p > pressure_max)
+			p = pressure_max;
+  }else{
+		p = pressure_min;
+	}
+
+  return p/100.0; //Pa -> hPa
 }
 //***************湿度キャリブレーション関数****************************
 uint32_t ESP32_BME280_I2C::compensate_H(int32_t adc_H) {
@@ -200,6 +267,23 @@ uint32_t ESP32_BME280_I2C::compensate_H(int32_t adc_H) {
   v_x1 = (v_x1 > 419430400 ? 419430400 : v_x1);
 
   return (uint32_t)(v_x1 >> 12);
+}
+//****************************************************************
+double ESP32_BME280_I2C::compensate_H_double(int32_t adc_H){
+  double var_H;
+
+  var_H = (((double)_t_fine) - 76800.0);
+  var_H = (adc_H - (((double)_dig_H4) * 64.0 + ((double)_dig_H5) / 16384.0 * var_H)) *
+    (((double)_dig_H2) / 65536.0 * (1.0 + ((double)_dig_H6) / 67108864.0 * var_H *
+    (1.0 + ((double)_dig_H3) / 67108864.0 * var_H)));
+  var_H = var_H * (1.0 - ((double)_dig_H1) * var_H / 524288.0);
+
+  if(var_H > 100.0)
+    var_H = 100.0;
+  else if(var_H < 0.0)
+    var_H = 0.0;
+
+  return var_H;
 }
 //***************標高計算関数****************************************************
 double ESP32_BME280_I2C::ReadAltitude(double SeaLevel_Pres, double pressure) {
